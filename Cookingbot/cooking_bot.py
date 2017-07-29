@@ -7,7 +7,17 @@ from dummy_cooking_api_lib import *
 
 
 
-
+class botlist:
+    def __init__(self, API_connector):
+        self.TG = API_connector
+        self.bot_dict = {}
+    def add(self, ID):
+        self.bot_dict[ID] = cooking_bot(TG)
+    def get_message(self):
+        ID = TG.get_chat_id()
+        if not(ID) in self.bot_dict.keys():
+            self.add(ID)
+        self.bot_dict[ID].get_message()
 
 
 class cooking_bot:
@@ -67,14 +77,16 @@ class cooking_bot:
             self.send("These are the ingredients you need: ")
             
             ingredients = get_ingredients(recipe)
+            send_str = ''
             for ing in ingredients:
-                self.send(str(ing[0]) + ' '+ ing[1])
+                send_str += str(ing[0]) + ' '+ ing[1] + '\n'
+            self.send(send_str)
             self.cookstate = 1
             
             self.send("Tell me when you are ready to start.")
         elif self.cookstate != False:
             instructions = get_instructions(recipe).split('\n')
-            print instructions
+            #print instructions
             self.send(instructions[self.cookstate])
             self.cookstate += 1
             
@@ -93,12 +105,14 @@ class cooking_bot:
 if True:
     TIMEOUT = 30
     TG = Telegram_API()
+    #BL = botlist(TG)
     bot = cooking_bot(TG)
     
     t = 0
     while t<TIMEOUT:
         TG.update_chat()
         if TG.new_message():
+            print 'new message coming'
             bot.get_message()
         sleep(1)
         t+=1
