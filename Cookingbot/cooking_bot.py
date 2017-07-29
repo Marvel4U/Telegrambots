@@ -9,62 +9,79 @@ from dummy_cooking_api_lib import *
 
 
 
-state = 'greeting'
-requsting = False
-cookstate = False
-# other states:
-# 'search', 'cook'
 
-def greet():
-    send_text = 'Hello, what do we want to cook together today?'
-    send_mess(chat_id, send_text)
+class cooking_bot:
+    def __init__(self, API_connector):
+        self.state = 'greeting'
+        # other states:
+        # 'search', 'cook'
+        self.cookstate = False
+        self.TG = API_connector
+        self.recipe = ''
+        #self.requsting = False
 
-def search_init():
-    send_text = 'Are you hungry for anything particular?'
-    send_mess(chat_id, send_text)
-    return 'search'
-
-def search(message):
-    item = 'lasagna'
-    if item in message:
-        send_text = "That's a great idea, I have a great recipe for "+item+"!"
-        state = 'cook'
-    else:
-        send_text = "Sorry I don't have a recipe for this, but how about some lasagna?"
-        requesting = 'lasagna'
-        state = 'search'
-
-    send_mess(chat_id, send_text)
-    return state
-
-def cook(recipe, cookstate):
-    if cookstate == False:
-        send_text = "These are the ingredients you need: "
-        send_mess(chat_id, send_text)
+    def get_message(self):
+        self.raw_message = self.TG.get_chat_input()
+        self.message_interpret()
+        self.respond()
         
-        ingredients = get_ingredients(recipe)
-        for ing in ingredients:
-            send_text = str(ing[0]) + ' '+ ing[1]
-            send_mess(chat_id, send_text)
-        cookstate = 1
-        
-        send_text = "Tell me when you are ready to start."
-        send_mess(chat_id, send_text)
-    elif cookstate != False:
-        instructions = get_instructions(recipe).split('\n')
-        print instructions
-        send_text = instructions[cookstate]
-        send_mess(chat_id, send_text)
-        cookstate += 1
-        
-    return "cook", cookstate
-        
+    def send(self, text):
+        self.TG.send_mess(text)
+    
+    def message_interpret(self):
+        self.message = self.raw_message
+    
+    def respond(self):
+        if self.state == 'greeting':
+            self.greet()
+        elif self.state == 'search':
+            self.search()
+            self.recipe = 'lasagna'
+            if self.state=='cook': 
+                self.cookstate = False
+                self.TG.update_id -= 1
+        elif self.state == 'cook':
+            self.cook(self.recipe)
 
+    def greet(self):
+        self.send('Hello, what do we want to cook together today?')
+        sleep(1)
+        self.search_init()
 
-def read_cook():
-    pass
+    def search_init(self):
+        self.send('Are you hungry for anything particular?')
+        self.state = 'search'
 
+    def search(self):
+        item = 'lasagna'
+        if item in self.message:
+            self.send("That's a great idea, I have a great recipe for "+item+"!")
+            self.state = 'cook'
+        else:
+            self.send("Sorry I don't have a recipe for this, but how about some lasagna?")
+            requesting = 'lasagna'
+            self.state = 'search'
 
+    def cook(self,recipe):
+        if self.cookstate == False:
+            self.send("These are the ingredients you need: ")
+            
+            ingredients = get_ingredients(recipe)
+            for ing in ingredients:
+                self.send(str(ing[0]) + ' '+ ing[1])
+            self.cookstate = 1
+            
+            self.send("Tell me when you are ready to start.")
+        elif self.cookstate != False:
+            instructions = get_instructions(recipe).split('\n')
+            print instructions
+            self.send(instructions[self.cookstate])
+            self.cookstate += 1
+            
+        self.state = "cook"
+            
+    
+    
 
 
 
@@ -74,28 +91,15 @@ def read_cook():
 
 #def main():
 if True:
-    update_id = last_update(get_updates_json(url))['update_id'] +1
+    TIMEOUT = 30
+    TG = Telegram_API()
+    bot = cooking_bot(TG)
+    
     t = 0
-    while t<30:
-        chatdata = last_update(get_updates_json(url))
-        chat_id = get_chat_id(chatdata)
-        if update_id == chatdata['update_id']:
-            message = get_chat_input(chatdata)
-            print state
-            if state == 'greeting':
-                greet()
-                sleep(1)
-                state = search_init()
-            elif state == 'search':
-                state = search(message)
-                recipe = 'lasagna'
-                if state=='cook': 
-                    cookstate = False
-                    update_id -= 1
-            elif state == 'cook':
-                state, cookstate = cook(recipe, cookstate)
-            
-            update_id += 1
+    while t<TIMEOUT:
+        TG.update_chat()
+        if TG.new_message():
+            bot.get_message()
         sleep(1)
         t+=1
     print "Time is up..."
