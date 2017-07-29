@@ -12,6 +12,8 @@ from dummy_cooking_api_lib import *
 state = 'greeting'
 requsting = False
 cookstate = False
+
+print "tets"
 # other states:
 # 'search', 'cook'
 
